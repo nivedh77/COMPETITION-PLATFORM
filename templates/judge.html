@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Judge Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+  <h2>Competition Portal</h2>
+  <a href="/">Logout</a>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h3>⚖️ Judge Dashboard</h3>
+    <p>Review and score submitted projects</p>
+  </div>
+
+  {% if submissions %}
+    {% for sub in submissions %}
+      <div class="card">
+        <h4>{{ sub["title"] }}</h4>
+        <p><strong>Competition:</strong> {{ sub["competition"] }}</p>
+
+        <form action="/score" method="POST">
+          <!-- Hidden submission ID -->
+          <input type="hidden" name="submission_id" value="{{ sub['id'] }}">
+
+          <input
+            type="number"
+            name="score"
+            min="1"
+            max="10"
+            placeholder="Score (1–10)"
+            required
+          >
+
+          <textarea
+            name="feedback"
+            placeholder="Feedback"
+            required
+          ></textarea>
+
+          <br><br>
+          <button type="submit">Submit Score</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="card">
+      <p>No submissions yet.</p>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <a href="/leaderboard">🏆 View Leaderboard</a>
+  </div>
+
+</div>
+
+</body>
+</html>

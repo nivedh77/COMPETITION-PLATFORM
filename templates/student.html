@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+  <h2>Competition Portal</h2>
+  <a href="/">Logout</a>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h3>🎓 Submit Project</h3>
+    <form action="/submit" method="POST" enctype="multipart/form-data">
+      <select name="competition_id" required>
+        <option value="">Select Competition</option>
+        {% for comp in competitions %}
+          <option value="{{ comp['id'] }}">{{ comp['name'] }}</option>
+        {% endfor %}
+      </select>
+
+      <input type="text" name="title" placeholder="Project Title" required>
+      <input type="file" name="project_file" required>
+      <br><br>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>📊 Submission Status</h3>
+
+    {% if status %}
+      <table width="100%" cellpadding="10">
+        <tr>
+          <th>Competition</th>
+          <th>Project</th>
+          <th>Score</th>
+          <th>Feedback</th>
+        </tr>
+        {% for s in status %}
+        <tr>
+          <td>{{ s["competition"] }}</td>
+          <td>{{ s["title"] }}</td>
+          <td>{{ s["score"] or "Pending" }}</td>
+          <td>{{ s["feedback"] or "Pending" }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p>No submissions yet.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+</body>
+</html>

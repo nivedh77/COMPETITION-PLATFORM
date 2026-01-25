@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Leaderboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header>
+  <h2>Competition Portal</h2>
+  <a href="/">Logout</a>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h3>🏆 Leaderboard</h3>
+    <p>Top ranked projects based on judge scores</p>
+  </div>
+
+  <div class="card">
+    <table width="100%" cellpadding="10">
+      <tr>
+        <th align="left">Rank</th>
+        <th align="left">Project</th>
+        <th align="left">Score</th>
+      </tr>
+
+      {% for item in leaderboard %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ item["title"] }}</td>
+        <td>{{ item["score"] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+</div>
+
+</body>
+</html>
