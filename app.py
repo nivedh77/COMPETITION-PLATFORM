@@ -1,19 +1,30 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 import os
 import sqlite3
+import tempfile
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "uploads"
+# Determine writeable directories (on Vercel serverless, root is read-only; use /tmp)
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+if IS_VERCEL or not os.access(".", os.W_OK):
+    BASE_DIR = tempfile.gettempdir()
+else:
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+DB_PATH = os.path.join(BASE_DIR, "database.db")
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ---------------- DATABASE ----------------
 def get_db():
-    conn = sqlite3.connect("database.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     conn = get_db()
     cursor = conn.cursor()
 
@@ -44,17 +55,37 @@ def init_db():
         )
     """)
 
+    # Seed sample competition if empty so students have a challenge to select
+    cursor.execute("SELECT COUNT(*) FROM competitions")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute(
+            "INSERT INTO competitions (name, description, deadline) VALUES (?, ?, ?)",
+            (
+                "National Tech Innovation Challenge 2026",
+                "Build innovative hardware or software solutions for education and sustainability.",
+                "2026-12-31"
+            )
+        )
+
     conn.commit()
     conn.close()
+
+# Ensure database and tables exist at module load time (crucial for Vercel serverless)
+init_db()
 
 # ---------------- ROUTES ----------------
 @app.route("/")
 def login():
     return render_template("login.html")
 
-@app.route("/dashboard", methods=["POST"])
+@app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
-    role = request.form["role"]
+    if request.method == "GET":
+        return redirect("/")
+
+    role = request.form.get("role")
+    if not role:
+        return redirect("/")
 
     if role == "Student":
         conn = get_db()
@@ -95,7 +126,7 @@ def dashboard():
         conn.close()
         return render_template("school.html", competitions=competitions)
 
-    return "Invalid role"
+    return "Invalid role", 400
 
 @app.route("/create_competition", methods=["POST"])
 def create_competition():
@@ -107,11 +138,15 @@ def create_competition():
     )
     conn.commit()
     conn.close()
-    return "✅ Competition created successfully!"
+    return "✅ Competition created successfully! <br><br><a href='/'>Return to portal</a>"
 
 @app.route("/submit", methods=["POST"])
 def submit_project():
-    file = request.files["project_file"]
+    file = request.files.get("project_file")
+    if not file or file.filename == "":
+        return "No file selected", 400
+
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
     filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
     file.save(filepath)
 
@@ -124,7 +159,7 @@ def submit_project():
     conn.commit()
     conn.close()
 
-    return "✅ Project submitted successfully!"
+    return "✅ Project submitted successfully! <br><br><a href='/'>Return to portal</a>"
 
 @app.route("/score", methods=["POST"])
 def score_project():
@@ -137,7 +172,7 @@ def score_project():
     conn.commit()
     conn.close()
 
-    return "✅ Score submitted successfully!"
+    return "✅ Score submitted successfully! <br><br><a href='/leaderboard'>View Leaderboard</a>"
 
 @app.route("/leaderboard")
 def leaderboard():
